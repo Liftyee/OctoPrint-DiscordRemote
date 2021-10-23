@@ -79,8 +79,7 @@ class DiscordImpl:
                           command: Command,
                           status_callback: Callable[[str], None]):
         self.bot_token = bot_token
-        self.channel_ids = self.channel_ids.split(",")
-        self.channel_ids = [int(channel_id) for channel_id in self.channel_ids]
+        self.channel_ids = [int(channel_id) for channel_id in channel_ids.split(",")]
         if logger:
             self.logger = logger
         self.command = command
