@@ -1,9 +1,9 @@
 ---
 layout: plugin
 
-id: discordremote
-title: OctoPrint-DiscordRemote
-description: Discord plugin for OctoPrint
+id: yeediscordremote
+title: OctoPrint-YeeDiscordRemote
+description: Discord plugin for OctoPrint (yee edition)
 author: Benjamin Chanudet
 license: MIT
 

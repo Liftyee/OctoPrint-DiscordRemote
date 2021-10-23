@@ -60,7 +60,7 @@ class DiscordImpl:
     def __init__(self):
         self.status_callback: Optional[Callable[[str], None]] = None
         self.logger = None
-        self.channel_id: int = 0  # enable dev mode on discord, right-click on the channel, copy ID
+        self.channel_ids: list[int]  # enable dev mode on discord, right-click on the channel, copy ID
         self.bot_token: str = ""  # get from the bot page. must be a bot, not a discord app
         self.loop = None
         self.client: Optional[discord.Client] = None
@@ -74,21 +74,23 @@ class DiscordImpl:
 
     def configure_discord(self,
                           bot_token: str,
-                          channel_id: str,
+                          channel_ids: str,
                           logger,
                           command: Command,
                           status_callback: Callable[[str], None]):
         self.bot_token = bot_token
-        self.channel_id = int(channel_id)
+        self.channel_ids = self.channel_ids.split(",")
+        self.channel_ids = [int(channel_id) for channel_id in self.channel_ids]
         if logger:
             self.logger = logger
         self.command = command
         self.status_callback = status_callback
         self.status_callback(connected="connecting")
 
-        if len(str(self.channel_id)) != CHANNEL_ID_LENGTH:
-            self.logger.error("Incorrectly configured: Channel ID must be %d chars long." % CHANNEL_ID_LENGTH)
-            return
+        for id in self.channel_ids:
+            if len(str(id)) != CHANNEL_ID_LENGTH:
+                self.logger.error("Incorrectly configured: Channel ID must be %d chars long." % CHANNEL_ID_LENGTH)
+                return
         if self.bot_token is None or len(self.bot_token) != BOT_TOKEN_LENGTH:
             self.logger.error("Incorrectly configured: Bot Token must be %d chars long." % BOT_TOKEN_LENGTH)
             return
@@ -142,9 +144,10 @@ class DiscordImpl:
         try:
             while len(self.message_queue):
                 message_pairs = self.message_queue[0]
-                channel = self.client.get_channel(int(self.channel_id))
+                channels = [self.client.get_channel(int(self.channel_ids))]
                 for embed, snapshot in message_pairs:
-                    await channel.send(embed=embed, file=snapshot)
+                    for channel in channels:
+                        await channel.send(embed=embed, file=snapshot)
                 del self.message_queue[0]
             if len(self.message_queue) == 0:
                 self.process_queue.clear()
@@ -164,11 +167,12 @@ class DiscordImpl:
         self.message_queue.append(messages)
         self.process_queue.set()
 
+    # TODO: FIX THIS
     def log_safe(self, message):
-        return message.replace(self.bot_token, "[bot_token]").replace(self.channel_id, "[channel_id]")
+        return message#.replace(self.bot_token, "[bot_token]").replace(self.channel_id, "[channel_id]")
 
     async def handle_message(self, message):
-        if message.channel.id != self.channel_id:
+        if message.channel.id not in self.channel_ids:
             # Only care about messages from correct channel
             return
         self.logger.debug("Message is: %s" % message)
