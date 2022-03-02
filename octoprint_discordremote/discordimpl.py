@@ -10,7 +10,6 @@ import time
 from threading import Thread
 from typing import Optional, Tuple, List, Callable
 from unittest.mock import Mock
-from xmlrpc.client import boolean
 
 import discord
 from discord.embeds import Embed
@@ -57,16 +56,15 @@ class DiscordImpl:
                 self.event.clear()
             else:
                 self.set_state = False
-
-    def __init__(self):
-        self.status_callback: Optional[Callable[[str], None]] = None
-        self.logger = None
-        self.channel_ids: list[int]  # enable dev mode on discord, right-click on the channel, copy ID
-        self.bot_token: str = ""  # get from the bot page. must be a bot, not a discord app
+    def __init__(self,
+                 bot_token: str,
+                 channel_id: str,
+                 logger,
+                 command: Command,
+                 status_callback: Callable[[str], None]):
         self.loop = None
         self.client: Optional[discord.Client] = None
         self.running_thread: Optional[Thread] = None
-        self.command: Optional[Command] = None
         self.shutdown_event: DiscordImpl.AsyncIOEventWrapper = DiscordImpl.AsyncIOEventWrapper(None)
         self.message_queue: List[List[Tuple[Embed, File, int]]] = []
         self.destination_queue: List[int] = []
@@ -74,16 +72,9 @@ class DiscordImpl:
         self.process_queue: DiscordImpl.AsyncIOEventWrapper = DiscordImpl.AsyncIOEventWrapper(None)
         self.processsing_messages = False
 
-    def configure_discord(self,
-                          bot_token: str,
-                          channel_ids: str,
-                          logger,
-                          command: Command,
-                          status_callback: Callable[[str], None]):
         self.bot_token = bot_token
         self.channel_ids = [int(channel_id) for channel_id in channel_ids.split(",")]
-        if logger:
-            self.logger = logger
+        self.logger = logger
         self.command = command
         self.status_callback = status_callback
         self.status_callback(connected="connecting")
