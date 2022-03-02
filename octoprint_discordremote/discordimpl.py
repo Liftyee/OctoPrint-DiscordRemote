@@ -10,6 +10,7 @@ import time
 from threading import Thread
 from typing import Optional, Tuple, List, Callable
 from unittest.mock import Mock
+from xmlrpc.client import boolean
 
 import discord
 from discord.embeds import Embed
@@ -67,7 +68,8 @@ class DiscordImpl:
         self.running_thread: Optional[Thread] = None
         self.command: Optional[Command] = None
         self.shutdown_event: DiscordImpl.AsyncIOEventWrapper = DiscordImpl.AsyncIOEventWrapper(None)
-        self.message_queue: List[List[Tuple[Embed, File]]] = []
+        self.message_queue: List[List[Tuple[Embed, File, int]]] = []
+        self.destination_queue: List[int] = []
         self.thread: Optional[Thread] = None
         self.process_queue: DiscordImpl.AsyncIOEventWrapper = DiscordImpl.AsyncIOEventWrapper(None)
         self.processsing_messages = False
@@ -86,9 +88,9 @@ class DiscordImpl:
         self.status_callback = status_callback
         self.status_callback(connected="connecting")
 
-        for id in self.channel_ids:
+        for i, id in enumerate(self.channel_ids):
             if len(str(id)) != CHANNEL_ID_LENGTH:
-                self.logger.error("Incorrectly configured: Channel ID must be %d chars long." % CHANNEL_ID_LENGTH)
+                self.logger.error("Incorrectly configured: Channel ID %d must be %d chars long." % (i, CHANNEL_ID_LENGTH))
                 return
         if self.bot_token is None or len(self.bot_token) != BOT_TOKEN_LENGTH:
             self.logger.error("Incorrectly configured: Bot Token must be %d chars long." % BOT_TOKEN_LENGTH)
@@ -139,15 +141,20 @@ class DiscordImpl:
         except:
             pass
 
-    async def send_messages(self):
+    async def send_messages(self):  # defaults to all channels in the list, but it is possible to only send to one particular channel depending on what's in the message queue
         try:
             while len(self.message_queue):
-                message_pairs = self.message_queue[0]
-                channels = [self.client.get_channel(int(self.channel_ids))]
-                for embed, snapshot in message_pairs:
+                message_pair = self.message_queue[0] 
+                channel_to_send = self.destination_queue[0]
+                if channel_to_send == None:
+                    channels = [self.client.get_channel(cid) for cid in self.channel_ids]
+                else: 
+                    channels = [self.client.get_channel(channel_to_send)]
+                for embed, snapshot in message_pair:
                     for channel in channels:
                         await channel.send(embed=embed, file=snapshot)
                 del self.message_queue[0]
+                del self.destination_queue[0]
             if len(self.message_queue) == 0:
                 self.process_queue.clear()
         except Exception as e:
@@ -162,17 +169,18 @@ class DiscordImpl:
                 continue
             await self.process_queue.wait()
 
-    def send(self, messages: List[Tuple[Optional[Embed], Optional[File]]]):
+    def send(self, messages: List[Tuple[Optional[Embed], Optional[File]]], channel_id=None):
         self.message_queue.append(messages)
+        self.destination_queue.append(channel_id)
         self.process_queue.set()
 
     # TODO: FIX THIS
-    def log_safe(self, message):
+    def log_safe(self, message):        
         return message#.replace(self.bot_token, "[bot_token]").replace(self.channel_id, "[channel_id]")
 
     async def handle_message(self, message):
         if message.channel.id not in self.channel_ids:
-            # Only care about messages from correct channel
+            # Only care about messages from one of the correct channels
             return
         self.logger.debug("Message is: %s" % message)
 
@@ -191,11 +199,11 @@ class DiscordImpl:
 
             if re.match(r"^[\w,\s-]+\.(?:g|gco|gcode|zip(?:\.[\d]*)?)$", filename):
                 messages = self.command.download_file(filename, url, user)
-                self.send(messages)
+                self.send(messages, message.channel.id)
 
         if len(message.content) > 0:
             messages = self.command.parse_command(message.content, user)
-            self.send(messages)
+            self.send(messages, message.channel.id)
 
     def shutdown_discord(self):
         self.status_callback(connected="disconnected")

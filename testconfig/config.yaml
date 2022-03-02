@@ -18,6 +18,9 @@ plugins:
         read_until: 1622782800
       _releases:
         read_until: 1620652800
+  discordremote:
+    bottoken: NzEwMTg4OTU0ODM3ODQ0MDYw.Xrw1AQ.dMOm_7Hjrhdm_9szXRnMp6NJt9A
+    channelid: '808815966275764275'
   discovery:
     upnpUuid: 8177d9dc-adfd-481d-b020-594c148a8c96
   errortracking:
