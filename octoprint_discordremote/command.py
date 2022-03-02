@@ -106,7 +106,7 @@ class Command:
                     description += 'Size: %s\n' % os.path.getsize(file_path)
                     description += 'Date of Creation: %s\n' % time.ctime(os.path.getctime(file_path))
                     description += 'Download Path: %s\n' % \
-                                   ("http://" + baseurl + "/downloads/timelapse/" + urllib.quote(title))
+                                   ("http://" + baseurl + "/downloads/timelapse/" + urllib.parse.quote(title))
 
                     builder.add_field(title=title, text=description)
                 except Exception as e:
@@ -367,9 +367,9 @@ class Command:
         except OSError as e:
             pass
 
-        snapshots = self.plugin.get_snapshot()
-        if snapshots and len(snapshots) == 1:
-            builder.set_image(snapshots[0])
+        snapshot = self.plugin.get_snapshot()
+        if snapshot:
+            builder.set_image(snapshot)
         return builder.get_embeds()
 
     def pause(self):
