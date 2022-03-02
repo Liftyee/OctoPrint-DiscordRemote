@@ -10,6 +10,7 @@ dist
 testenv/
 testenv3/
 config.yaml
+config.yaml.sample
 .coverage
 htmlcov/
 .tox/
