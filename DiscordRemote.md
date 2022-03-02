@@ -2,13 +2,13 @@
 layout: plugin
 
 id: yeediscordremote
-title: OctoPrint-YeeDiscordRemote
+title: OctoPrint-DiscordRemote
 description: Discord plugin for OctoPrint (yee edition)
 author: Benjamin Chanudet
 license: MIT
 
 # TODO
-date: 2017-09-03
+date: 2022-03-02
 
 homepage: https://github.com/cameroncros/Octoprint-DiscordRemote
 source: https://github.com/cameroncros/OctoPrint-DiscordRemote
